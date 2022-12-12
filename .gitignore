@@ -1,0 +1,5 @@
+Assembly/.*
+*.asm
+StackArithmetic/
+MemoryAccess/
+Test.java
