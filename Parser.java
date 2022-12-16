@@ -1,15 +1,17 @@
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 
 public class Parser {
 
-    BufferedReader reader;
-    Command c;
-    String arg1;
-    int arg2;
+    private BufferedReader reader;
+    private Command c;
+    private String arg1;
+    private int arg2;
 
-    public Parser(BufferedReader reader) {
-        this.reader = reader;
+    public Parser(File source) throws IOException {
+        this.reader = new BufferedReader(new FileReader(source));
     }
 
     public boolean hasMoreCommands() throws IOException {
@@ -17,8 +19,7 @@ public class Parser {
     }
 
     public void advance() throws IOException {
-        // String line = reader.readLine();
-        String line = "add";
+        String line = reader.readLine();
         String[] arr = line.trim().replaceAll("( )+", " ").split(" ");
         switch (arr[0]) {
             case "push":
@@ -49,4 +50,7 @@ public class Parser {
         return arg2;
     }
 
+    public void close() throws IOException {
+        reader.close();
+    }
 }
