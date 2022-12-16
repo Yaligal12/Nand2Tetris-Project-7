@@ -1,7 +1,7 @@
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
 
 public class CodeWriter {
     final String popFirst = "@SP\n" +
@@ -44,8 +44,7 @@ public class CodeWriter {
     final String eq = compute + "D;JEQ\n" + writeTrueFalse;
     final String gt = compute + "D;JGT\n" + writeTrueFalse;
 
-    final String push = "A=A+D\n" +
-            "D=M\n" +
+    final String push = "D=M\n" +
             "@SP\n" +
             "A=M\n" +
             "M=D\n" +
@@ -63,10 +62,12 @@ public class CodeWriter {
             "A=M\n" +
             "M=D\n";
 
+    String fileName;
     BufferedWriter writer;
 
-    public CodeWriter(BufferedWriter writer) {
-        this.writer = writer;
+    public CodeWriter(File output) throws IOException {
+        this.fileName = output.getName().substring(0, output.getName().length() - 3);
+        this.writer = new BufferedWriter(new FileWriter(output));
     }
 
     public void WriteArithmetic(String command) throws IOException {
@@ -102,11 +103,39 @@ public class CodeWriter {
     }
 
     public void WritePushPop(Command c, String segmant, int index) throws IOException {
-        String line = "@" + segmant + "\nD=M\n@" + index + "\n";
-        if (c == Command.C_POP) {
-            line = line + pop;
-        } else
-            line = line + push;
+        String line = "";
+        String address = "";
+        boolean bool = true;
+        switch (segmant) {
+            case "POINTER":
+                segmant = (index == 0) ? "THIS" : "THAT";
+            case "LCL":
+            case "ARG":
+            case "THIS":
+            case "THAT":
+                line = "@" + segmant + "\nD=M\n@" + index + "\n"; // LCL ARG THIS THAT
+                if (c == Command.C_POP) {
+                    line = line + pop;
+                } else
+                    line = line + "A=A+D\n" + push;
+                break;
+            case "STATIC":
+                if (c == Command.C_POP) {
+                    line = popFirst + "@" + fileName + index + "\nM=D\n";
+                } else
+                    line = "@" + fileName + index + "\n" + push;
+                break;
+            case "TEMP":
+                if (c == Command.C_POP) {
+                    line = popFirst + "@" + (5 + index) + "\nM=D\n";
+                } else
+                    line = "@" + (5 + index) + "\n" + push;
+                break;
+            case "CONSTANT":
+                line = "@" + index + "\n" + "D=A" + push.substring(3);
+                break;
+        }
         writer.write(line);
+        writer.close();
     }
 }
