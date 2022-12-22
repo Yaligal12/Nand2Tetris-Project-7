@@ -80,10 +80,25 @@ public class CodeWriter {
             "A=M\n" +
             "M=D\n";
 
+    final String setARG = "D=A\n"+
+                          "@5\n"+
+                          "D=D+A\n"+
+                          "@SP\n"+
+                          "D=M-D\n"+
+                          "@ARG\n"+
+                          "M=D\n";
+
+    final String setLocal = "@SP\n"+
+                            "D=M\n"+
+                            "@LCL\n"+
+                            "M=D\n";
+
     // Class Fields
     String fileName;
+    String currentFunc;
     BufferedWriter writer;
     int contCounter;
+    int funcCounter;
 
     /**
      * Creates a new instance of CodeWriter
@@ -95,6 +110,7 @@ public class CodeWriter {
         this.fileName = output.getName().substring(0, output.getName().length() - 3);
         this.writer = new BufferedWriter(new FileWriter(output));
         this.contCounter = 0;
+        this.funcCounter = 0;
     }
 
     /**
@@ -165,7 +181,7 @@ public class CodeWriter {
 
             case "constant":
                 def = false;
-                line = "@" + index + "\n" + "D=A" + push.substring(3);
+                line = "@" + index + "\nD=A" + push.substring(3);
                 break;
 
             case "static":
@@ -217,6 +233,22 @@ public class CodeWriter {
 
     public void writeIf(String label) throws IOException {
         writer.write("//if-goto\n" + popFirst + "@" + label + "\nD;JNE\n");
+    }
+
+    public void writeFunction(String name, int nVars) throws IOException{
+
+    }
+
+    public void writeCall(String name, int nArgs) throws IOException{
+        String returnAddr =  fileName + currentFunc + "$ret." + (funcCounter++);
+        writer.write("//push return address\n@" + returnAddr + "\nD=A" + push.substring(3)); //push return address
+        writer.write("//push LCL\n@LCL\n" + push); //push LCL
+        writer.write("//push ARG\n@ARG\n" + push); //push ARG
+        writer.write("//push THIS\n@THIS\n" + push); //push THIS
+        writer.write("//push THAT\n@THAT\n" + push); //push THIS
+        writer.write("//Set new ARG\n@" + nArgs + "\n" + setARG); //set new ARG
+        writer.write("//Set Local\n" + setLocal); //set Local 
+        writer.write("//call function\n@" + name + "\n0;JMP\n" + "(" + returnAddr +")\n");
     }
 
     /**
