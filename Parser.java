@@ -10,7 +10,7 @@ import java.io.IOException;
 public class Parser {
 
     private BufferedReader reader;
-    private Command c;
+    private String c;
     private String arg1;
     private int arg2;
 
@@ -42,23 +42,33 @@ public class Parser {
      */
     public void advance() throws IOException {
         String line = reader.readLine();
+        if(line.equals("")){
+            c = "comment";
+            return;
+        }
+        int commentIndex = line.indexOf("//");
+        if(commentIndex != -1){
+            line = line.substring(0,line.indexOf("//"));
+        }
         String[] arr = line.trim().replaceAll("( )+", " ").split(" "); // Split the string to it's whitespace seperated
                                                                        // components
 
-        switch (arr[0]) {
-            case "push":
-                c = Command.C_PUSH;
+        switch (arr.length) {
+            case 3:
+                c = arr[0];
                 arg1 = arr[1];
                 arg2 = Integer.parseInt(arr[2]);
                 break;
-            case "pop":
-                c = Command.C_POP;
+            case 2:
+                c = arr[0];
                 arg1 = arr[1];
-                arg2 = Integer.parseInt(arr[2]);
+                break;
+            case 1:
+                c = "arithmetic";
+                arg1 = arr[0];
                 break;
             default:
-                c = Command.C_ARITHMETIC;
-                arg1 = arr[0];
+                c = "comment";
         }
     }
 
@@ -67,7 +77,7 @@ public class Parser {
      * 
      * @return Command instance representing the current VM command type
      */
-    public Command commandType() {
+    public String commandType() {
         return c;
     }
 

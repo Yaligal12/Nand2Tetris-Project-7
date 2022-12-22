@@ -146,7 +146,7 @@ public class CodeWriter {
      *                segment
      * @throws IOException if couldn't write the line to the file
      */
-    public void WritePushPop(Command c, String segmant, int index) throws IOException {
+    public void WritePushPop(String c, String segmant, int index) throws IOException {
         String line = "";
         String address = "";
         boolean def = true;
@@ -157,7 +157,7 @@ public class CodeWriter {
             case "THAT":
                 def = false;
                 line = "@" + segmant + "\nD=M\n@" + index + "\n";
-                if (c == Command.C_POP) {
+                if (c.equals("pop")) {
                     line = line + pop;
                 } else
                     line = line + "A=A+D\n" + push;
@@ -181,7 +181,7 @@ public class CodeWriter {
                 break;
         }
         if (def) {
-            if (c == Command.C_POP) {
+            if (c.equals("pop")) {
                 line = popFirst + "@" + address + "\nM=D\n";
             } else
                 line = "@" + address + "\n" + push;
@@ -201,6 +201,23 @@ public class CodeWriter {
                 + "\n0;JMP\n(TRUE" + contCounter + ")\n" + writeTrue + "(CONT" + (contCounter++)
                 + ")\n@SP\nM=M+1\n";
     }
+    
+    /**
+     * 
+     * @param label
+     * @throws IOException
+     */
+    public void writeLabel(String label) throws IOException {
+        writer.write("//lable\n(" + label + ")\n");
+    }
+
+    public void writeGoTo(String label) throws IOException {
+        writer.write("//goto\n@" + label + "\n0;JMP\n");
+    }
+
+    public void writeIf(String label) throws IOException {
+        writer.write("//if-goto\n" + popFirst + "@" + label + "\nD;JNE\n");
+    }
 
     /**
      * Adds an infinite loop (to be used at the end of the file)
@@ -208,7 +225,7 @@ public class CodeWriter {
      * @throws IOException if couldn't write line into the file
      */
     public void infiniteLoop() throws IOException {
-        writer.write("(END)\n@END\n0;JMP");
+        writer.write("//infinite loop\n(END)\n@END\n0;JMP");
     }
 
     /**

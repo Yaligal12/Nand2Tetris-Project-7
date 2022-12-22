@@ -1,8 +1,8 @@
 Assembly/.*
 *.asm
 *.class
-StackArithmetic/
-MemoryAccess/
+FunctionCalls/
+ProgramFlow/
 Test.java
 README.txt
 lang.txt

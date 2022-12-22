@@ -25,25 +25,39 @@ public class VMTranslator {
             // output file)
             while (parser.hasMoreCommands()) {
                 parser.advance();
-                if (parser.commandType() == Command.C_ARITHMETIC) {
-                    writer.WriteArithmetic(parser.arg1());
-                } else {
-                    String segment = parser.arg1();
-                    switch (segment) {
-                        case "local":
-                            segment = "LCL";
-                            break;
-                        case "argument":
-                            segment = "ARG";
-                            break;
-                        case "this":
-                            segment = "THIS";
-                            break;
-                        case "that":
-                            segment = "THAT";
-                            break;
-                    }
-                    writer.WritePushPop(parser.commandType(), segment, parser.arg2());
+                switch (parser.commandType()){
+                    case "arithmetic":
+                        writer.WriteArithmetic(parser.arg1());
+                        break;
+                    case "pop":
+                    case "push":
+                        String segment = parser.arg1();
+                        switch (segment) {
+                            case "local":
+                                segment = "LCL";
+                                break;
+                            case "argument":
+                                segment = "ARG";
+                                break;
+                            case "this":
+                                segment = "THIS";
+                                break;
+                            case "that":
+                                segment = "THAT";
+                                break; }
+                        writer.WritePushPop(parser.commandType(), segment, parser.arg2());
+                        break;
+                    case "label":
+                        writer.writeLabel(parser.arg1());
+                        break;
+                    case "goto":
+                        writer.writeGoTo(parser.arg1());
+                        break;
+                    case "if-goto":
+                        writer.writeIf(parser.arg1());
+                        break;
+                    case "comment":
+                        break;
                 }
             }
 

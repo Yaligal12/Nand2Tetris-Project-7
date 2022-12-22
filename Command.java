@@ -4,8 +4,11 @@
  * Represents the types of different Hack VM language commands
  */
 public enum Command {
-    C_ARITHMETIC,
+    arithemtic,
     C_PUSH,
-    C_POP
+    C_POP,
+    C_LABEL,
+    C_GOTO,
+    C_IF
 
 }
