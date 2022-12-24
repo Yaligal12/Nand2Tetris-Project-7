@@ -244,7 +244,7 @@ public class CodeWriter {
     public void writeFunction(String name, int nVars) throws IOException{
         writer.write("//Function" + name + nVars + "\n");
         funcStack.push(name);
-        writer.write("//function label\n(" + fileName + name +")\n");
+        writer.write("//function label\n(" +  name +")\n");
         writer.write("//Save Counter = nVars\n@" + nVars + "\nD=A\n@Counter\nM=D\n");
         writer.write("//if nVars == 0 Continue\n@CONT" + contCounter + "\nD;JEQ\n");
         writer.write("//Init Local Variables\n(LocalInit" + contCounter + ")\n@0\nD=A" + push.substring(3));
@@ -258,7 +258,7 @@ public class CodeWriter {
 
     public void writeCall(String name, int nArgs) throws IOException{
         writer.write("//Call" + name + nArgs + "\n");
-        String returnAddr =  fileName + funcStack.peek() + "$ret." + (funcCounter++);
+        String returnAddr =   funcStack.peek() + "$ret." + (funcCounter++);
         writer.write("//push return address\n@" + returnAddr + "\nD=A" + push.substring(3)); //push return address
         writer.write("//push LCL\n@LCL\n" + push); //push LCL
         writer.write("//push ARG\n@ARG\n" + push); //push ARG
@@ -266,7 +266,7 @@ public class CodeWriter {
         writer.write("//push THAT\n@THAT\n" + push); //push THAT
         writer.write("//Set new ARG\n@" + nArgs + "\n" + setARG); //set new ARG
         writer.write("//Set Local\n" + setLocal); //set Local 
-        writer.write("//call function\n@" + fileName + name + "\n0;JMP\n" + "(" + returnAddr +")\n");
+        writer.write("//call function\n@" +  name + "\n0;JMP\n" + "(" + returnAddr +")\n");
     }
 
     public void writeReturn() throws IOException {
@@ -308,8 +308,15 @@ public class CodeWriter {
 
     public void writeBootstrapCode() throws IOException{
         writer.write("//Bootstrap Code\n@256\nD=A\n@SP\nM=D\n");
+        String returnAddr =  "$ret." + (funcCounter++);
+        writer.write("//push return address\n@" + returnAddr + "\nD=A" + push.substring(3)); //push return address
+        writer.write("//push LCL\n@LCL\n" + push); //push LCL
+        writer.write("//push ARG\n@ARG\n" + push); //push ARG
+        writer.write("//push THIS\n@THIS\n" + push); //push THIS
+        writer.write("//push THAT\n@THAT\n" + push); //push THAT
+        writer.write("//Set new ARG\n@" + 0 + "\n" + setARG); //set new ARG
         writer.write("//Set Local\n" + setLocal); //set Local 
-        writer.write("//call function\n@" + fileName + "Sys.init\n0;JMP\n");
+        writer.write("//call function\n@Sys.init\n0;JMP\n");
     }
 
     /**
