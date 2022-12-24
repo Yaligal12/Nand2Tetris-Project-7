@@ -17,12 +17,12 @@ public class VMTranslator {
             File output;
             File[] filesArray;
             
-            // Create a new  CodeWriter to handle writing the translation of VM commands 
+            // Initialize a new CodeWriter and Parser to handle writing the translation of VM commands 
             CodeWriter writer = null;
             Parser parser = null;
             
-            if(source.isDirectory()){
-                filesArray = getVMFiles(source);
+            if(source.isDirectory()){ 
+                filesArray = source.listFiles();
                 output = new File(args[0] + "/" + source.getName() + ".asm");
                 writer = new CodeWriter(output);
                 writer.writeBootstrapCode();

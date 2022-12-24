@@ -100,11 +100,11 @@ public class CodeWriter {
                                      "D=M\n" ;
 
     // Class Fields
-    String fileName;
-    BufferedWriter writer;
-    int contCounter;
-    int funcCounter;
-    Stack<String> funcStack;
+    String fileName; //Stores the name of the file that is currently being processed
+    BufferedWriter writer; 
+    int contCounter; //Counts the number of writeTrue/False operations performed
+    int funcCounter; //Counts the number of the function calls performed
+    Stack<String> funcStack; //Handles the order of the function calls
 
     /**
      * Creates a new instance of CodeWriter
@@ -225,57 +225,90 @@ public class CodeWriter {
     }
     
     /**
+     * Writes Hack Assembly Code to implement a given Hack VM language command of type label
      * 
-     * @param label
-     * @throws IOException
+     * @param label - the label to be written
+     * @throws IOException if an I/O error occurs
      */
     public void writeLabel(String label) throws IOException {
         writer.write("//lable\n(" + label + ")\n");
     }
-
+    /**
+     * Writes Hack Assembly Code to implement a given Hack VM language command of type go-to
+     * 
+     * @param label - the label name to go to
+     * @throws IOException if an I/O error occurs
+     */
     public void writeGoTo(String label) throws IOException {
         writer.write("//goto\n@" + label + "\n0;JMP\n");
     }
 
+    /**
+     * Writes Hack Assembly Code to implement a given Hack VM language command of type if-goto
+     * 
+     * @param label - the label to go to
+     * @throws IOException if an I/O error occurs
+     */
     public void writeIf(String label) throws IOException {
         writer.write("//if-goto\n" + popFirst + "@" + label + "\nD;JNE\n");
     }
 
+    /**
+     * Writes Hack Assembly Code to implement a given Hack VM language command of type function
+     * (Function Declaration)
+     * 
+     * @param name - the name of the function
+     * @param nVars - the number of variables the function uses
+     * @throws IOException if an I/O error occurs
+     */
     public void writeFunction(String name, int nVars) throws IOException{
         writer.write("//Function" + name + nVars + "\n");
-        funcStack.push(name);
-        writer.write("//function label\n(" +  name +")\n");
-        writer.write("//Save Counter = nVars\n@" + nVars + "\nD=A\n@Counter\nM=D\n");
-        writer.write("//if nVars == 0 Continue\n@CONT" + contCounter + "\nD;JEQ\n");
-        writer.write("//Init Local Variables\n(LocalInit" + contCounter + ")\n@0\nD=A" + push.substring(3));
+        funcStack.push(name); //push the current function to the function stack
+        writer.write("//function label\n(" +  name +")\n"); //define the label to call the function
+        writer.write("//Save Counter = nVars\n@" + nVars + "\nD=A\n@Counter\nM=D\n"); //store counter to initiate function variables 
+        writer.write("//if nVars == 0 Continue\n@CONT" + contCounter + "\nD;JEQ\n"); //if nVars == 0 don't initialize variables
+        writer.write("//Init Local Variables\n(LocalInit" + contCounter + ")\n@0\nD=A" + push.substring(3)); //initiate a variable
         writer.write("//Counter-- and Loop\n" + "@Counter\n"+
                                                 "M=M-1\n" +
                                                 "D=M\n" + 
                                                 "@LocalInit" + contCounter + "\n" +
                                                 "D;JGT\n" +
-                                                "(CONT"+ (contCounter++) + ")\n");
+                                                "(CONT"+ (contCounter++) + ")\n"); // continue while counter > 0
     }
 
+    /**
+     * Writes Hack Assembly Code to implement a given Hack VM language command of type call-function
+     * 
+     * @param name - the name of the function to be executed
+     * @param nArgs - the number of arguments to be passed to the function
+     * @throws IOException - if an I/O error occurs
+     */
     public void writeCall(String name, int nArgs) throws IOException{
         writer.write("//Call" + name + nArgs + "\n");
         String returnAddr =   funcStack.peek() + "$ret." + (funcCounter++);
-        writer.write("//push return address\n@" + returnAddr + "\nD=A" + push.substring(3)); //push return address
-        writer.write("//push LCL\n@LCL\n" + push); //push LCL
-        writer.write("//push ARG\n@ARG\n" + push); //push ARG
-        writer.write("//push THIS\n@THIS\n" + push); //push THIS
-        writer.write("//push THAT\n@THAT\n" + push); //push THAT
+        writer.write("//push return address\n@" + returnAddr + "\nD=A" + push.substring(3)); //push return address to stack
+        writer.write("//push LCL\n@LCL\n" + push); //push LCL to stack
+        writer.write("//push ARG\n@ARG\n" + push); //push ARG to stack
+        writer.write("//push THIS\n@THIS\n" + push); //push THIS to stack
+        writer.write("//push THAT\n@THAT\n" + push); //push THAT to stack
         writer.write("//Set new ARG\n@" + nArgs + "\n" + setARG); //set new ARG
-        writer.write("//Set Local\n" + setLocal); //set Local 
-        writer.write("//call function\n@" +  name + "\n0;JMP\n" + "(" + returnAddr +")\n");
+        writer.write("//Set Local\n" + setLocal); //set new Local 
+        writer.write("//call function\n@" +  name + "\n0;JMP\n" + "(" + returnAddr +")\n"); //label the return line for the function
     }
 
+    /**
+     * Writes Hack Assembly Code to implement a given Hack VM language command of type return
+     * 
+     * @throws IOException - if an I/O error occurs
+     * @throws IOException
+     */
     public void writeReturn() throws IOException {
         writer.write("//Return\n");
-        writer.write("//save the endFrame\n" +
+        writer.write("//store the endFrame\n" +
                      "@LCL\n" +
                      "D=M\n" +
                      "@endFrame\n" +
-                     "M=D\n");
+                     "M=D\n"); //store the endFrame address
         writer.write("//compute return address\n" +
                      "D=M\n" +
                      "@5\n" +
@@ -283,29 +316,34 @@ public class CodeWriter {
                      "A=D\n" +
                      "D=M\n" +
                      "@retAddress\n" +
-                     "M=D\n");
+                     "M=D\n"); //get the return address of the caller function
         writer.write("//*ARG = pop()\n" +
                      "@SP\n" +
                      "A=M-1\n" +
                      "D=M\n" +
                      "@ARG\n" +
                      "A=M\n" +
-                     "M=D\n");
+                     "M=D\n"); //push the return value to caller function stack
         writer.write("//update SP\n" +
                      "D=A+1\n" +
                      "@SP\n" +
-                     "M=D\n");
-        writer.write("//reposition THAT\n@1\n" + repositionPointer + "@THAT\nM=D\n"); 
-        writer.write("//reposition THIS\n@2\n" + repositionPointer + "@THIS\nM=D\n");  
-        writer.write("//reposition ARG\n@3\n" + repositionPointer + "@ARG\nM=D\n");  
-        writer.write("//reposition LCL\n@4\n" + repositionPointer + "@LCL\nM=D\n"); 
+                     "M=D\n"); //update SP to the top of the caller function stack
+        writer.write("//reposition THAT\n@1\n" + repositionPointer + "@THAT\nM=D\n"); //restore THAT value of caller function 
+        writer.write("//reposition THIS\n@2\n" + repositionPointer + "@THIS\nM=D\n"); //restore THIS value of caller function
+        writer.write("//reposition ARG\n@3\n" + repositionPointer + "@ARG\nM=D\n"); //restore ARG value of caller function
+        writer.write("//reposition LCL\n@4\n" + repositionPointer + "@LCL\nM=D\n"); //restore LCL value of caller function
         writer.write("//Go-To retAddress\n" + 
                      "@retAddress\n" +
                      "A=M\n" +
-                     "0;JMP\n" );  
-        funcStack.pop();
+                     "0;JMP\n" ); //Goto the return address in caller function
+        funcStack.pop(); //pop the callee from the stack
     }
 
+    /**
+     * Writes the Global BootStrap Code to initially run sys.init function in every VM program
+     * 
+     * @throws IOException - if an I/O error occurs
+     */
     public void writeBootstrapCode() throws IOException{
         writer.write("//Bootstrap Code\n@256\nD=A\n@SP\nM=D\n");
         String returnAddr =  "$ret." + (funcCounter++);
