@@ -2,6 +2,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Stack;
 
 /**
  * Class CodeWriter -
@@ -93,12 +94,17 @@ public class CodeWriter {
                             "@LCL\n"+
                             "M=D\n";
 
+    final String repositionPointer = "D=A\n" + 
+                                     "@endFrame\n" +
+                                     "A=M-D\n" +
+                                     "D=M\n" ;
+
     // Class Fields
     String fileName;
-    String currentFunc;
     BufferedWriter writer;
     int contCounter;
     int funcCounter;
+    Stack<String> funcStack;
 
     /**
      * Creates a new instance of CodeWriter
@@ -107,10 +113,10 @@ public class CodeWriter {
      * @throws IOException if couldn't create a new writer
      */
     public CodeWriter(File output) throws IOException {
-        this.fileName = output.getName().substring(0, output.getName().length() - 3);
         this.writer = new BufferedWriter(new FileWriter(output));
         this.contCounter = 0;
         this.funcCounter = 0;
+        this.funcStack = new Stack<String>();
     }
 
     /**
@@ -236,19 +242,74 @@ public class CodeWriter {
     }
 
     public void writeFunction(String name, int nVars) throws IOException{
-
+        writer.write("//Function" + name + nVars + "\n");
+        funcStack.push(name);
+        writer.write("//function label\n(" + fileName + name +")\n");
+        writer.write("//Save Counter = nVars\n@" + nVars + "\nD=A\n@Counter\nM=D\n");
+        writer.write("//if nVars == 0 Continue\n@CONT" + contCounter + "\nD;JEQ\n");
+        writer.write("//Init Local Variables\n(LocalInit" + contCounter + ")\n@0\nD=A" + push.substring(3));
+        writer.write("//Counter-- and Loop\n" + "@Counter\n"+
+                                                "M=M-1\n" +
+                                                "D=M\n" + 
+                                                "@LocalInit" + contCounter + "\n" +
+                                                "D;JGT\n" +
+                                                "(CONT"+ (contCounter++) + ")\n");
     }
 
     public void writeCall(String name, int nArgs) throws IOException{
-        String returnAddr =  fileName + currentFunc + "$ret." + (funcCounter++);
+        writer.write("//Call" + name + nArgs + "\n");
+        String returnAddr =  fileName + funcStack.peek() + "$ret." + (funcCounter++);
         writer.write("//push return address\n@" + returnAddr + "\nD=A" + push.substring(3)); //push return address
         writer.write("//push LCL\n@LCL\n" + push); //push LCL
         writer.write("//push ARG\n@ARG\n" + push); //push ARG
         writer.write("//push THIS\n@THIS\n" + push); //push THIS
-        writer.write("//push THAT\n@THAT\n" + push); //push THIS
+        writer.write("//push THAT\n@THAT\n" + push); //push THAT
         writer.write("//Set new ARG\n@" + nArgs + "\n" + setARG); //set new ARG
         writer.write("//Set Local\n" + setLocal); //set Local 
-        writer.write("//call function\n@" + name + "\n0;JMP\n" + "(" + returnAddr +")\n");
+        writer.write("//call function\n@" + fileName + name + "\n0;JMP\n" + "(" + returnAddr +")\n");
+    }
+
+    public void writeReturn() throws IOException {
+        writer.write("//Return\n");
+        writer.write("//save the endFrame\n" +
+                     "@LCL\n" +
+                     "D=M\n" +
+                     "@endFrame\n" +
+                     "M=D\n");
+        writer.write("//compute return address\n" +
+                     "D=M\n" +
+                     "@5\n" +
+                     "D=D-A\n" +
+                     "A=D\n" +
+                     "D=M\n" +
+                     "@retAddress\n" +
+                     "M=D\n");
+        writer.write("//*ARG = pop()\n" +
+                     "@SP\n" +
+                     "A=M-1\n" +
+                     "D=M\n" +
+                     "@ARG\n" +
+                     "A=M\n" +
+                     "M=D\n");
+        writer.write("//update SP\n" +
+                     "D=A+1\n" +
+                     "@SP\n" +
+                     "M=D\n");
+        writer.write("//reposition THAT\n@1\n" + repositionPointer + "@THAT\nM=D\n"); 
+        writer.write("//reposition THIS\n@2\n" + repositionPointer + "@THIS\nM=D\n");  
+        writer.write("//reposition ARG\n@3\n" + repositionPointer + "@ARG\nM=D\n");  
+        writer.write("//reposition LCL\n@4\n" + repositionPointer + "@LCL\nM=D\n"); 
+        writer.write("//Go-To retAddress\n" + 
+                     "@retAddress\n" +
+                     "A=M\n" +
+                     "0;JMP\n" );  
+        funcStack.pop();
+    }
+
+    public void writeBootstrapCode() throws IOException{
+        writer.write("//Bootstrap Code\n@256\nD=A\n@SP\nM=D\n");
+        writer.write("//Set Local\n" + setLocal); //set Local 
+        writer.write("//call function\n@" + fileName + "Sys.init\n0;JMP\n");
     }
 
     /**
@@ -258,6 +319,7 @@ public class CodeWriter {
      */
     public void infiniteLoop() throws IOException {
         writer.write("//infinite loop\n(END)\n@END\n0;JMP");
+        
     }
 
     /**

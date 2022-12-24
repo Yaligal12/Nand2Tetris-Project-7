@@ -64,8 +64,13 @@ public class Parser {
                 arg1 = arr[1];
                 break;
             case 1:
-                c = "arithmetic";
-                arg1 = arr[0];
+                if(arr[0].equals("return")){
+                    c = arr[0];
+                }
+                else {
+                    c = "arithmetic";
+                    arg1 = arr[0];
+                }
                 break;
             default:
                 c = "comment";
