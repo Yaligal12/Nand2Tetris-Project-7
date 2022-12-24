@@ -100,21 +100,4 @@ public class VMTranslator {
             e.printStackTrace();
         }
     }
-
-    public static File[] getVMFiles(File dir) {
-        File[] temp = dir.listFiles();
-        File[] files = new File[temp.length];
-        int counter = 1;
-        files[0] = new File(dir.getPath() + "/Sys.vm");
-        for (File f : temp) {
-            if(f.getName().endsWith(".vm") && !f.getName().equals("Sys.vm")){
-                files[counter++] = f; 
-            }
-        }
-        File[] finalFilesArr = new File[counter];
-        for(int i = 0; i < counter; i++){
-            finalFilesArr[i] = files[i];
-        }
-        return finalFilesArr;
-    }
 }
