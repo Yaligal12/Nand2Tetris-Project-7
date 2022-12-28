@@ -104,7 +104,7 @@ public class CodeWriter {
     BufferedWriter writer; 
     int contCounter; //Counts the number of writeTrue/False operations performed
     int funcCounter; //Counts the number of the function calls performed
-    Stack<String> funcStack; //Handles the order of the function calls
+    String currentFunc; //Handles the order of the function calls
 
     /**
      * Creates a new instance of CodeWriter
@@ -116,7 +116,7 @@ public class CodeWriter {
         this.writer = new BufferedWriter(new FileWriter(output));
         this.contCounter = 0;
         this.funcCounter = 0;
-        this.funcStack = new Stack<String>();
+        this.currentFunc = "";
     }
 
     /**
@@ -231,6 +231,7 @@ public class CodeWriter {
      * @throws IOException if an I/O error occurs
      */
     public void writeLabel(String label) throws IOException {
+        label = currentFunc.equals("") ? label : currentFunc + "$" + label;
         writer.write("//lable\n(" + label + ")\n");
     }
     /**
@@ -240,6 +241,7 @@ public class CodeWriter {
      * @throws IOException if an I/O error occurs
      */
     public void writeGoTo(String label) throws IOException {
+        label = currentFunc.equals("") ? label : currentFunc + "$" + label;
         writer.write("//goto\n@" + label + "\n0;JMP\n");
     }
 
@@ -250,6 +252,7 @@ public class CodeWriter {
      * @throws IOException if an I/O error occurs
      */
     public void writeIf(String label) throws IOException {
+        label = currentFunc.equals("") ? label : currentFunc + "$" + label;
         writer.write("//if-goto\n" + popFirst + "@" + label + "\nD;JNE\n");
     }
 
@@ -263,7 +266,7 @@ public class CodeWriter {
      */
     public void writeFunction(String name, int nVars) throws IOException{
         writer.write("//Function" + name + nVars + "\n");
-        funcStack.push(name); //push the current function to the function stack
+        currentFunc = name;
         writer.write("//function label\n(" +  name +")\n"); //define the label to call the function
         writer.write("//Save Counter = nVars\n@" + nVars + "\nD=A\n@Counter\nM=D\n"); //store counter to initiate function variables 
         writer.write("//if nVars == 0 Continue\n@CONT" + contCounter + "\nD;JEQ\n"); //if nVars == 0 don't initialize variables
@@ -285,7 +288,7 @@ public class CodeWriter {
      */
     public void writeCall(String name, int nArgs) throws IOException{
         writer.write("//Call" + name + nArgs + "\n");
-        String returnAddr =   funcStack.peek() + "$ret." + (funcCounter++);
+        String returnAddr = currentFunc + "$ret." + (funcCounter++);
         writer.write("//push return address\n@" + returnAddr + "\nD=A" + push.substring(3)); //push return address to stack
         writer.write("//push LCL\n@LCL\n" + push); //push LCL to stack
         writer.write("//push ARG\n@ARG\n" + push); //push ARG to stack
@@ -336,7 +339,6 @@ public class CodeWriter {
                      "@retAddress\n" +
                      "A=M\n" +
                      "0;JMP\n" ); //Goto the return address in caller function
-        funcStack.pop(); //pop the callee from the stack
     }
 
     /**
